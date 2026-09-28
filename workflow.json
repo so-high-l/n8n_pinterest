@@ -1,0 +1,3168 @@
+{
+  "name": "Pinterest Post Enhanced",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "PLACEHOLDER_ETSY_RSS_URL",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -1120,
+        1056
+      ],
+      "id": "PLACEHOLDER_NODE_ID_01",
+      "name": "Import RSS Feed"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst cleanedItems = items.map(item => {\n  const data = item.json;\n\n  const stripHtml = (html) => {\n    if (!html) return '';\n    return html\n      .replace(/<br\\s*\\/?>/gi, '\\n')\n      .replace(/<p[^>]*>/gi, '')\n      .replace(/<\\/p>/gi, '\\n')\n      .replace(/<li[^>]*>/gi, '• ')\n      .replace(/<\\/li>/gi, '\\n')\n      .replace(/<[^>]+>/g, '')\n      .replace(/&amp;/g, '&')\n      .replace(/&lt;/g, '<')\n      .replace(/&gt;/g, '>')\n      .replace(/&quot;/g, '\"')\n      .replace(/&#39;/g, \"'\")\n      .replace(/&nbsp;/g, ' ')\n      .replace(/\\n{3,}/g, '\\n\\n')\n      .trim();\n  };\n\n  const extractImageUrl = (html) => {\n    if (!html) return '';\n    const match = html.match(/<img[^>]+src=[\"']([^\"']+)[\"']/i);\n    return match ? match[1] : '';\n  };\n\n  const extractPrice = (html) => {\n    if (!html) return { amount: '', currency: '' };\n    const match = html.match(/<p class=\"price\">([\\d.,]+)\\s*([A-Z]+)<\\/p>/i);\n    if (!match) return { amount: '', currency: '' };\n    return {\n      amount: parseFloat(match[1].replace(',', '.')),\n      currency: match[2],\n    };\n  };\n\n  const extractDescription = (html) => {\n    if (!html) return '';\n    let cleaned = html.replace(/<p class=\"image\">.*?<\\/p>/is, '');\n    cleaned = cleaned.replace(/<p class=\"price\">.*?<\\/p>/is, '');\n    cleaned = stripHtml(cleaned);\n\n    const cutoffPhrases = [\n      'Instant digital download',\n      'Please note',\n      'What’s included',\n      \"What's included\",\n      'How it works',\n      'This is a digital download',\n      'No physical item will be shipped',\n    ];\n\n    for (const phrase of cutoffPhrases) {\n      const idx = cleaned.toLowerCase().indexOf(phrase.toLowerCase());\n      if (idx !== -1) {\n        cleaned = cleaned.slice(0, idx).trim();\n        break;\n      }\n    }\n\n    return cleaned.slice(0, 500).trim();\n  };\n\n  const extractShopFromTitle = (title) => {\n    if (!title) return '';\n    const match = title.match(/\\bby\\s+([A-Z][A-Za-z0-9]+)$/);\n    return match ? match[1] : '';\n  };\n\n  const cleanTitle = (title) => {\n    if (!title) return '';\n    return title.replace(/\\s*by\\s+[A-Z][A-Za-z0-9]+$/, '').trim();\n  };\n\n  const extractListingId = (url) => {\n    if (!url) return '';\n    const match = url.match(/\\/listing\\/(\\d+)\\//);\n    return match ? match[1] : '';\n  };\n\n  const makeSlugId = (title) => {\n    if (!title) return '';\n    return title.toLowerCase().trim().replace(/\\s+/g, '-');\n  };\n\n  const rawContent = data.content || '';\n  const rawTitle = data.title || '';\n  const title = cleanTitle(rawTitle);\n  const price = extractPrice(rawContent);\n  const cleanDescription = extractDescription(rawContent);\n  const etsyUrl = data.link || '';\n  const imageUrl = extractImageUrl(rawContent);\n  const now = new Date().toISOString();\n  const listingId = extractListingId(etsyUrl) || makeSlugId(title);\n\n  return {\n    json: {\n      TITLE: title,\n      DESCRIPTION: cleanDescription,\n      CLEAN_DESCRIPTION: cleanDescription,\n      PRICE: price.amount ?? '',\n      CURRENCY_CODE: price.currency || '',\n      QUANTITY: '',\n      TAGS: '',\n      MATERIALS: '',\n      IMAGE1: imageUrl,\n      IMAGE2: '',\n      IMAGE3: '',\n      IMAGE4: '',\n      IMAGE5: '',\n      IMAGE6: '',\n      IMAGE7: '',\n      IMAGE8: '',\n      IMAGE9: '',\n      IMAGE10: '',\n      'VARIATION 1 TYPE': '',\n      'VARIATION 1 NAME': '',\n      'VARIATION 1 VALUES': '',\n      'VARIATION 2 TYPE': '',\n      'VARIATION 2 NAME': '',\n      'VARIATION 2 VALUES': '',\n      SKU: '',\n      LISTING_ID: listingId,\n      ETSY_URL: etsyUrl,\n      SHOP_NAME: extractShopFromTitle(rawTitle) || 'PLACEHOLDER_ETSY_SHOP_NAME',\n      MAIN_IMAGE: imageUrl,\n      PIN_SOURCE_IMAGE: imageUrl,\n      BOARD: 'DARK MOODY WALL ART',\n      STATUS: 'new',\n      IMAGE_PROMPT: '',\n      PIN_IMAGE_URL: '',\n      PIN_TITLE: '',\n      PIN_DESCRIPTION: '',\n      PIN_HASHTAGS: '',\n      PIN_ALT_TEXT: '',\n      PIN_POST_DATE: '',\n      PIN_ATTEMPTS: 0,\n      LAST_ERROR: '',\n      CONTENT_GENERATED: 'FALSE',\n      IMAGE_GENERATED: 'FALSE',\n      POSTED_TO_PINTEREST: 'FALSE',\n      RSS_IMPORTED: 'TRUE',\n      CREATED_AT: now,\n      UPDATED_AT: now,\n    }\n  };\n});\n\nreturn cleanedItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -896,
+        1056
+      ],
+      "id": "PLACEHOLDER_NODE_ID_02",
+      "name": "Normalize RSS Items"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "PLACEHOLDER_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "PLACEHOLDER_GOOGLE_SHEET_NAME",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/PLACEHOLDER_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "PLACEHOLDER_SHEET_GID",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/PLACEHOLDER_GOOGLE_SHEET_ID/edit#gid=PLACEHOLDER_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "LISTING_ID"
+          ],
+          "schema": [
+            {
+              "id": "TITLE",
+              "displayName": "TITLE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "DESCRIPTION",
+              "displayName": "DESCRIPTION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PRICE",
+              "displayName": "PRICE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CURRENCY_CODE",
+              "displayName": "CURRENCY_CODE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "QUANTITY",
+              "displayName": "QUANTITY",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "TAGS",
+              "displayName": "TAGS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "MATERIALS",
+              "displayName": "MATERIALS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE1",
+              "displayName": "IMAGE1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE2",
+              "displayName": "IMAGE2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE3",
+              "displayName": "IMAGE3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE4",
+              "displayName": "IMAGE4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE5",
+              "displayName": "IMAGE5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE6",
+              "displayName": "IMAGE6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE7",
+              "displayName": "IMAGE7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE8",
+              "displayName": "IMAGE8",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE9",
+              "displayName": "IMAGE9",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE10",
+              "displayName": "IMAGE10",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 1 TYPE",
+              "displayName": "VARIATION 1 TYPE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 1 NAME",
+              "displayName": "VARIATION 1 NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 1 VALUES",
+              "displayName": "VARIATION 1 VALUES",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 2 TYPE",
+              "displayName": "VARIATION 2 TYPE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 2 NAME",
+              "displayName": "VARIATION 2 NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 2 VALUES",
+              "displayName": "VARIATION 2 VALUES",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "SKU",
+              "displayName": "SKU",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "LISTING_ID",
+              "displayName": "LISTING_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ETSY_URL",
+              "displayName": "ETSY_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "SHOP_NAME",
+              "displayName": "SHOP_NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "MAIN_IMAGE",
+              "displayName": "MAIN_IMAGE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "BOARD",
+              "displayName": "BOARD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "STATUS",
+              "displayName": "STATUS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE_PROMPT",
+              "displayName": "IMAGE_PROMPT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_IMAGE_URL",
+              "displayName": "PIN_IMAGE_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_TITLE",
+              "displayName": "PIN_TITLE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_DESCRIPTION",
+              "displayName": "PIN_DESCRIPTION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_HASHTAGS",
+              "displayName": "PIN_HASHTAGS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_ALT_TEXT",
+              "displayName": "PIN_ALT_TEXT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PIN_POST_DATE",
+              "displayName": "PIN_POST_DATE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PIN_ATTEMPTS",
+              "displayName": "PIN_ATTEMPTS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "LAST_ERROR",
+              "displayName": "LAST_ERROR",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "CONTENT_GENERATED",
+              "displayName": "CONTENT_GENERATED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "IMAGE_GENERATED",
+              "displayName": "IMAGE_GENERATED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "POSTED_TO_PINTEREST",
+              "displayName": "POSTED_TO_PINTEREST",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RSS_IMPORTED",
+              "displayName": "RSS_IMPORTED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "CREATED_AT",
+              "displayName": "CREATED_AT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "UPDATED_AT",
+              "displayName": "UPDATED_AT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PIN_SOURCE_IMAGE",
+              "displayName": "PIN_SOURCE_IMAGE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -672,
+        1056
+      ],
+      "id": "PLACEHOLDER_NODE_ID_03",
+      "name": "Upsert Product Rows",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PLACEHOLDER_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "PLACEHOLDER_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "PLACEHOLDER_GOOGLE_SHEET_NAME",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/PLACEHOLDER_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "PLACEHOLDER_SHEET_GID",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/PLACEHOLDER_GOOGLE_SHEET_ID/edit#gid=PLACEHOLDER_SHEET_GID"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "STATUS",
+              "lookupValue": "new"
+            },
+            {
+              "lookupColumn": "POSTED_TO_PINTEREST",
+              "lookupValue": "FALSE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -736,
+        1376
+      ],
+      "id": "PLACEHOLDER_NODE_ID_04",
+      "name": "Get Pending Rows",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PLACEHOLDER_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.length ? [items[0]] : [];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        1376
+      ],
+      "id": "PLACEHOLDER_NODE_ID_05",
+      "name": "Select First Row"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const row = item.json;\n\n  const isEmpty = (v) => v === undefined || v === null || String(v).trim() === '';\n\n  const attempts = Number(row.PIN_ATTEMPTS || 0);\n  const isAlreadyPosted = String(row.POSTED_TO_PINTEREST || '').toUpperCase() === 'TRUE';\n  const canRetry = attempts < 5;\n\n  const needsImagePrompt = isEmpty(row.IMAGE_PROMPT);\n  const needsSeo = isEmpty(row.PIN_TITLE) || isEmpty(row.PIN_DESCRIPTION);\n  const needsImageGeneration = isEmpty(row.PIN_IMAGE_URL);\n\n  const readyToPost = !needsImagePrompt && !needsSeo && !needsImageGeneration && !isAlreadyPosted && canRetry;\n  const shouldProcess = !isAlreadyPosted && canRetry;\n\n  return {\n    json: {\n      ...row,\n      PIN_ATTEMPTS: attempts,\n      needs_image_prompt: needsImagePrompt,\n      needs_seo: needsSeo,\n      needs_image_generation: needsImageGeneration,\n      is_already_posted: isAlreadyPosted,\n      can_retry: canRetry,\n      ready_to_post: readyToPost,\n      should_process: shouldProcess,\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        1376
+      ],
+      "id": "PLACEHOLDER_NODE_ID_06",
+      "name": "Evaluate Row Status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "91c68e7f-f237-449a-a82e-2c83179d72aa",
+              "leftValue": "={{$json[\"needs_image_prompt\"]}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        112,
+        1376
+      ],
+      "id": "PLACEHOLDER_NODE_ID_07",
+      "name": "Check Image Prompt Needed"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "result.image",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        1616
+      ],
+      "id": "PLACEHOLDER_NODE_ID_08",
+      "name": "Convert Pin Image To File"
+    },
+    {
+      "parameters": {
+        "operation": "uploadFile",
+        "additionalFieldsFile": {}
+      },
+      "type": "n8n-nodes-cloudinary.cloudinary",
+      "typeVersion": 1,
+      "position": [
+        240,
+        1616
+      ],
+      "id": "PLACEHOLDER_NODE_ID_09",
+      "name": "Upload Pin Image",
+      "credentials": {
+        "cloudinaryApi": {
+          "id": "PLACEHOLDER_CLOUDINARY_CREDENTIAL_ID",
+          "name": "Cloudinary account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloudflare.com/client/v4/accounts/PLACEHOLDER_CLOUDFLARE_ACCOUNT_ID/ai/run/@cf/black-forest-labs/flux-2-klein-4b",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{$json[\"IMAGE_PROMPT\"]}}"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "input_image_0",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "width",
+              "value": "896"
+            },
+            {
+              "name": "height",
+              "value": "1344"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "PLACEHOLDER_NODE_ID_10",
+      "name": "Generate Pin Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -208,
+        1616
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PLACEHOLDER_HTTP_HEADER_CREDENTIAL_ID",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{$json[\"MAIN_IMAGE\"]}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -432,
+        1616
+      ],
+      "id": "PLACEHOLDER_NODE_ID_11",
+      "name": "Download Source Image"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1168,
+        2000
+      ],
+      "id": "PLACEHOLDER_NODE_ID_12",
+      "name": "Focus Keyword Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "PLACEHOLDER_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate one single focus keyword or short search phrase (1–3 words) that best represents what a shopper would type to find this digital printable wall art.\n\nThis keyword will be used with SerpAPI to get related and trending keyword suggestions for Etsy and Pinterest.\n\nRules:\n- 1 to 3 words only\n- must be highly searchable\n- must clearly match the artwork\n- must be broad enough to expand into more keyword ideas\n- focus on the strongest buyer search intent: subject, style, or room use\n- prefer phrases commonly used for printable wall art and home decor\n\nGood examples of keyword style:\n- botanical print\n- bathroom wall art\n- dark academia art\n- vintage bunny print\n- floral wall art\n- neutral wall art\n- gallery wall print\n\nReturn ONLY the keyword.\n\nProduct Name: {{ $('Normalize RSS Items1').item.json.TITLE }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -976,
+        1888
+      ],
+      "id": "PLACEHOLDER_NODE_ID_13",
+      "name": "Generate Focus Keyword"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1168,
+        1728
+      ],
+      "id": "PLACEHOLDER_NODE_ID_14",
+      "name": "Image Prompt Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "PLACEHOLDER_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a Pinterest image prompt generator for printable wall art.\n\nCreate ONE realistic Pinterest vertical interior mockup.\n\nThe artwork provided in input_image_0 must be placed inside the frame and preserved exactly:\n- use the image from input_image_0 as the framed artwork\n- do not recreate or reinterpret the artwork\n- do not change colors, composition, or proportions\n- do not crop or stylize the artwork\n- do not generate new artwork\n- place the input_image_0 artwork directly inside the frame\n\nChoose the best room based on context:\n- bathroom humor → bathroom\n- dark academia → moody vintage bathroom or study\n- funny art → relatable home environment\n\nRequirements:\n- framed artwork large and centered\n- frame fully visible\n- artwork clearly readable\n- realistic interior photography\n- Pinterest aesthetic\n- vertical composition\n- soft natural window lighting\n- minimal clutter\n- aspirational but relatable\n- premium home décor look\n- no text overlay\n- no watermark\n- no people\n- no objects overlapping the frame\n\nCamera:\n- professional interior photography\n- straight-on or slightly angled view\n- soft natural light\n- subtle shadows\n- slight depth of field\nThe artwork from input_image_0 is the focal point and must remain visually identical to the provided image.\nReturn ONLY the short image prompt text with no label, no markdown, no quotation marks.\n\nProduct title: {{$json[\"TITLE\"]}}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -960,
+        1616
+      ],
+      "id": "PLACEHOLDER_NODE_ID_15",
+      "name": "Generate Image Prompt"
+    },
+    {
+      "parameters": {
+        "url": "https://suggestqueries.google.com/complete/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "client",
+              "value": "firefox"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -656,
+        1888
+      ],
+      "id": "PLACEHOLDER_NODE_ID_16",
+      "name": "Fetch Keyword Suggestions"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create one highly clickable, SEO-optimized Pinterest title under 100 characters for a digital printable wall art listing.\n\nUse the product name and top keywords below to write one title that feels stylish, searchable, and instantly clear to Pinterest users.\n\nRequirements:\n- put the main keyword near the beginning\n- naturally include 1 to 3 of the provided keywords\n- make it sound human, elegant, and visually descriptive\n- avoid robotic phrasing and keyword stuffing\n- reflect the artwork’s subject, style, or room placement\n- emphasize the decor outcome or mood the print creates\n\nPrioritize search intent commonly used for printable art shoppers, such as:\nbathroom wall art, printable wall art, botanical print, dark academia art, vintage wall art, gallery wall print, neutral wall art, bedroom wall art, living room wall art, funny wall art\n\nAllowed modifiers when relevant:\nmoody, vintage, funny, elegant, neutral, minimalist, dark academia, cozy, aesthetic, charming\n\nRules:\n- maximum 100 characters\n- no em dash\n- no quotation marks\n- output only the title\n\nProduct Name: {{ $('Normalize RSS Items2').item.json.TITLE }}\nTop Keywords: {{ $json.top_keywords }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -304,
+        1888
+      ],
+      "id": "PLACEHOLDER_NODE_ID_17",
+      "name": "Generate Pin Title"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -224,
+        2016
+      ],
+      "id": "PLACEHOLDER_NODE_ID_18",
+      "name": "Pin Title Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "PLACEHOLDER_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "PLACEHOLDER_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "PLACEHOLDER_GOOGLE_SHEET_NAME",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/PLACEHOLDER_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "PLACEHOLDER_SHEET_GID",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/PLACEHOLDER_GOOGLE_SHEET_ID/edit#gid=PLACEHOLDER_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": 0,
+            "IMAGE_PROMPT": "={{ $json[\"text\"] }}",
+            "UPDATED_AT": "={{ $now.toISO() }}",
+            "STATUS": "prompt_ready",
+            "LISTING_ID": "={{ $('Normalize RSS Items2').item.json.LISTING_ID }}",
+            "MAIN_IMAGE": "={{ $('Normalize RSS Items2').item.json.MAIN_IMAGE }}"
+          },
+          "matchingColumns": [
+            "LISTING_ID"
+          ],
+          "schema": [
+            {
+              "id": "TITLE",
+              "displayName": "TITLE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "DESCRIPTION",
+              "displayName": "DESCRIPTION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PRICE",
+              "displayName": "PRICE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CURRENCY_CODE",
+              "displayName": "CURRENCY_CODE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "QUANTITY",
+              "displayName": "QUANTITY",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "TAGS",
+              "displayName": "TAGS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "MATERIALS",
+              "displayName": "MATERIALS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE1",
+              "displayName": "IMAGE1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE2",
+              "displayName": "IMAGE2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE3",
+              "displayName": "IMAGE3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE4",
+              "displayName": "IMAGE4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE5",
+              "displayName": "IMAGE5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE6",
+              "displayName": "IMAGE6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE7",
+              "displayName": "IMAGE7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE8",
+              "displayName": "IMAGE8",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE9",
+              "displayName": "IMAGE9",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE10",
+              "displayName": "IMAGE10",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 1 TYPE",
+              "displayName": "VARIATION 1 TYPE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 1 NAME",
+              "displayName": "VARIATION 1 NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 1 VALUES",
+              "displayName": "VARIATION 1 VALUES",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 2 TYPE",
+              "displayName": "VARIATION 2 TYPE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 2 NAME",
+              "displayName": "VARIATION 2 NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 2 VALUES",
+              "displayName": "VARIATION 2 VALUES",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "SKU",
+              "displayName": "SKU",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "LISTING_ID",
+              "displayName": "LISTING_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ETSY_URL",
+              "displayName": "ETSY_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "SHOP_NAME",
+              "displayName": "SHOP_NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "MAIN_IMAGE",
+              "displayName": "MAIN_IMAGE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "BOARD",
+              "displayName": "BOARD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "STATUS",
+              "displayName": "STATUS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "IMAGE_PROMPT",
+              "displayName": "IMAGE_PROMPT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PIN_IMAGE_URL",
+              "displayName": "PIN_IMAGE_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_TITLE",
+              "displayName": "PIN_TITLE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_DESCRIPTION",
+              "displayName": "PIN_DESCRIPTION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_HASHTAGS",
+              "displayName": "PIN_HASHTAGS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_ALT_TEXT",
+              "displayName": "PIN_ALT_TEXT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_POST_DATE",
+              "displayName": "PIN_POST_DATE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_ATTEMPTS",
+              "displayName": "PIN_ATTEMPTS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "LAST_ERROR",
+              "displayName": "LAST_ERROR",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CONTENT_GENERATED",
+              "displayName": "CONTENT_GENERATED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE_GENERATED",
+              "displayName": "IMAGE_GENERATED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "POSTED_TO_PINTEREST",
+              "displayName": "POSTED_TO_PINTEREST",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "RSS_IMPORTED",
+              "displayName": "RSS_IMPORTED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CREATED_AT",
+              "displayName": "CREATED_AT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "UPDATED_AT",
+              "displayName": "UPDATED_AT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PIN_SOURCE_IMAGE",
+              "displayName": "PIN_SOURCE_IMAGE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -624,
+        1616
+      ],
+      "id": "PLACEHOLDER_NODE_ID_19",
+      "name": "Save Prompt Ready Status",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PLACEHOLDER_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        80,
+        2016
+      ],
+      "id": "PLACEHOLDER_NODE_ID_20",
+      "name": "Pin Description Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "PLACEHOLDER_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a highly engaging, keyword-optimized Pinterest description (2–3 sentences) for this digital printable wall art:  \n{{ $('Normalize RSS Items2').item.json.TITLE }}\n\nSentence 1:  \nStart with a relatable home décor frustration or styling challenge. Avoid generic lines. Use scenarios like “blank walls that feel unfinished,” “boring bathroom décor,” “empty gallery wall,” “lack of personality in small spaces,” “hard-to-style neutral interiors,” or “uninspiring bedroom décor.” Make it feel natural, relatable, and visually driven.\n\nSentence 2:  \nPresent this printable wall art as the stylish, easy solution. Highlight benefits like “instant digital download,” “easy home refresh,” “affordable décor upgrade,” “gallery wall styling,” “aesthetic printable art,” “moody décor accent,” or “timeless wall décor.” Naturally include 1–2 of the provided top keywords.\n\nSentence 3:  \nEnd with a friendly, low-pressure call-to-action encouraging users to save the pin or refresh their space. Add 5 highly relevant Pinterest hashtags based on wall art and home décor search intent such as #wallart #printablewallart #homedecorideas #gallerywall #interiordesign.\n\nGuidelines:\n- 2–3 sentences total\n- natural, human tone\n- keyword-rich but not stuffed\n- Pinterest-friendly language\n- no em dash\n- no quotation marks\n- output only the final description\n\nProduct Name: {{ $('Normalize RSS Items2').item.json.TITLE }}\nTop Keywords:  {{ $('Extract Top Keywords').item.json.top_keywords }} ",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -16,
+        1888
+      ],
+      "id": "PLACEHOLDER_NODE_ID_21",
+      "name": "Generate Pin Description"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\n// The Google Suggest response is inside input.data as a string\nlet data = input.data ?? input;\n\n// Parse if it's a string\nif (typeof data === 'string') {\n  data = JSON.parse(data);\n}\n\nconst seed = Array.isArray(data) ? data[0] : '';\nconst suggestions = Array.isArray(data) && Array.isArray(data[1]) ? data[1] : [];\n\nconst keywords = [...new Set(suggestions.filter(k => k && k !== seed))].slice(0, 3);\n\nreturn [\n  {\n    json: {\n      seed,\n      top_keywords: keywords\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        1888
+      ],
+      "id": "PLACEHOLDER_NODE_ID_22",
+      "name": "Extract Top Keywords"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"LISTING_ID\": \"{{ $('Evaluate Row Status').item.json.LISTING_ID }}\",\n  \"PIN_ATTEMPTS\": \"{{ $('Evaluate Row Status').item.json.PIN_ATTEMPTS }}\",\n  \"etsy_url\": \"{{ $('Get Pending Rows').item.json.ETSY_URL }}\",\n  \"product_name\": \"{{ $('Evaluate Row Status').item.json.TITLE }}\",\n  \"pin_title\": \"{{ $('Generate Pin Title').item.json.text }}\",\n  \"pin_description\": \"{{ $('Generate Pin Description').item.json.text }}\",\n  \"focus_keyword\": \"{{ $('Extract Top Keywords').item.json.seed }}\",\n  \"top_keywords\": \"{{ Array.isArray($('Extract Top Keywords').item.json.top_keywords) ? $('Extract Top Keywords').item.json.top_keywords.join(', ') : $('Extract Top Keywords').item.json.top_keywords }}\",\n  \"mockup_image_url\": \"{{ $('Upload Pin Image').item.json.secure_url }}\",\n  \"source_art_url\": \"{{ $('Select First Row').item.json.MAIN_IMAGE }}\",\n  \"board\": \"{{ $('Get Pending Rows').item.json.BOARD }}\",\n  \"status\": \"assets_ready\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        256,
+        1888
+      ],
+      "id": "PLACEHOLDER_NODE_ID_23",
+      "name": "Assemble Asset Payload",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "PLACEHOLDER_MAKE_WEBHOOK_URL",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"listing_id\": \"{{ $('Assemble Asset Payload').item.json.LISTING_ID }}\",\n  \"title\": \"{{ $('Assemble Asset Payload').item.json.pin_title }}\",\n  \"description\": \"{{ $('Assemble Asset Payload').item.json.pin_description }}\",\n  \"image_url\": \"{{ $('Assemble Asset Payload').item.json.mockup_image_url }}\",\n  \"board_id\": \"{{ $('Assemble Asset Payload').item.json.board }}\",\n  \"link\": \"{{ $('Assemble Asset Payload').item.json.etsy_url }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -736,
+        2160
+      ],
+      "id": "PLACEHOLDER_NODE_ID_24",
+      "name": "Post Pin To Make"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "PLACEHOLDER_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "PLACEHOLDER_GOOGLE_SHEET_NAME",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/PLACEHOLDER_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "PLACEHOLDER_SHEET_GID",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/PLACEHOLDER_GOOGLE_SHEET_ID/edit#gid=PLACEHOLDER_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": 0,
+            "LISTING_ID": "={{ $json.LISTING_ID }}",
+            "STATUS": "={{ $json.status }}",
+            "PIN_IMAGE_URL": "={{ $json.mockup_image_url }}",
+            "PIN_TITLE": "={{ $json.pin_title }}",
+            "PIN_DESCRIPTION": "={{ $json.pin_description }}",
+            "top_keywords": "={{ $json.top_keywords }}",
+            "focus_keyword": "={{ $json.focus_keyword }}",
+            "product_name": "={{ $json.product_name }}",
+            "mockup_image_url": "={{ $json.mockup_image_url }}",
+            "source_art_url": "={{ $json.source_art_url }}",
+            "CONTENT_GENERATED": "TRUE",
+            "IMAGE_GENERATED": "TRUE",
+            "UPDATED_AT": "={{ $now.toISO() }}",
+            "LAST_ERROR": "",
+            "PIN_SOURCE_IMAGE": "={{ $json.source_art_url }}"
+          },
+          "matchingColumns": [
+            "LISTING_ID"
+          ],
+          "schema": [
+            {
+              "id": "TITLE",
+              "displayName": "TITLE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "DESCRIPTION",
+              "displayName": "DESCRIPTION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CLEAN_DESCRIPTION",
+              "displayName": "CLEAN_DESCRIPTION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PRICE",
+              "displayName": "PRICE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CURRENCY_CODE",
+              "displayName": "CURRENCY_CODE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "QUANTITY",
+              "displayName": "QUANTITY",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "TAGS",
+              "displayName": "TAGS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "MATERIALS",
+              "displayName": "MATERIALS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE1",
+              "displayName": "IMAGE1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE2",
+              "displayName": "IMAGE2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE3",
+              "displayName": "IMAGE3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE4",
+              "displayName": "IMAGE4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE5",
+              "displayName": "IMAGE5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE6",
+              "displayName": "IMAGE6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE7",
+              "displayName": "IMAGE7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE8",
+              "displayName": "IMAGE8",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE9",
+              "displayName": "IMAGE9",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE10",
+              "displayName": "IMAGE10",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 1 TYPE",
+              "displayName": "VARIATION 1 TYPE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 1 NAME",
+              "displayName": "VARIATION 1 NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 1 VALUES",
+              "displayName": "VARIATION 1 VALUES",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 2 TYPE",
+              "displayName": "VARIATION 2 TYPE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 2 NAME",
+              "displayName": "VARIATION 2 NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 2 VALUES",
+              "displayName": "VARIATION 2 VALUES",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "SKU",
+              "displayName": "SKU",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "LISTING_ID",
+              "displayName": "LISTING_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ETSY_URL",
+              "displayName": "ETSY_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "SHOP_NAME",
+              "displayName": "SHOP_NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "MAIN_IMAGE",
+              "displayName": "MAIN_IMAGE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "BOARD",
+              "displayName": "BOARD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "STATUS",
+              "displayName": "STATUS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "IMAGE_PROMPT",
+              "displayName": "IMAGE_PROMPT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_IMAGE_URL",
+              "displayName": "PIN_IMAGE_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PIN_TITLE",
+              "displayName": "PIN_TITLE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PIN_DESCRIPTION",
+              "displayName": "PIN_DESCRIPTION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PIN_HASHTAGS",
+              "displayName": "PIN_HASHTAGS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_ALT_TEXT",
+              "displayName": "PIN_ALT_TEXT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_POST_DATE",
+              "displayName": "PIN_POST_DATE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_ATTEMPTS",
+              "displayName": "PIN_ATTEMPTS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "LAST_ERROR",
+              "displayName": "LAST_ERROR",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CONTENT_GENERATED",
+              "displayName": "CONTENT_GENERATED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "IMAGE_GENERATED",
+              "displayName": "IMAGE_GENERATED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "POSTED_TO_PINTEREST",
+              "displayName": "POSTED_TO_PINTEREST",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "RSS_IMPORTED",
+              "displayName": "RSS_IMPORTED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CREATED_AT",
+              "displayName": "CREATED_AT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "UPDATED_AT",
+              "displayName": "UPDATED_AT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_SOURCE_IMAGE",
+              "displayName": "PIN_SOURCE_IMAGE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "product_name",
+              "displayName": "product_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "pin_title",
+              "displayName": "pin_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "pin_description",
+              "displayName": "pin_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "focus_keyword",
+              "displayName": "focus_keyword",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_keywords",
+              "displayName": "top_keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "mockup_image_url",
+              "displayName": "mockup_image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_art_url",
+              "displayName": "source_art_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -944,
+        2160
+      ],
+      "id": "PLACEHOLDER_NODE_ID_25",
+      "name": "Save Assets Ready Status",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PLACEHOLDER_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "PLACEHOLDER_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "PLACEHOLDER_GOOGLE_SHEET_NAME",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/PLACEHOLDER_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "PLACEHOLDER_SHEET_GID",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/PLACEHOLDER_GOOGLE_SHEET_ID/edit#gid=PLACEHOLDER_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": 0,
+            "LISTING_ID": "={{ $json.LISTING_ID }}",
+            "STATUS": "={{ $json.STATUS }}",
+            "PIN_IMAGE_URL": "={{ $json.PIN_IMAGE_URL }}",
+            "PIN_TITLE": "={{ $json.PIN_TITLE }}",
+            "PIN_DESCRIPTION": "={{ $json.PIN_DESCRIPTION }}",
+            "top_keywords": "={{ $json.top_keywords }}",
+            "focus_keyword": "={{ $json.focus_keyword }}",
+            "product_name": "={{ $json.product_name }}",
+            "mockup_image_url": "={{ $json.mockup_image_url }}",
+            "source_art_url": "={{ $json.source_art_url }}",
+            "status": "={{ $json.status }}",
+            "PIN_POST_DATE": "={{ $json.PIN_POST_DATE }}",
+            "PIN_ATTEMPTS": "={{ $json.PIN_ATTEMPTS }}",
+            "UPDATED_AT": "={{ $json.UPDATED_AT }}",
+            "POSTED_TO_PINTEREST": "={{ $json.POSTED_TO_PINTEREST }}",
+            "LAST_ERROR": "={{ $json.LAST_ERROR }}",
+            "CONTENT_GENERATED": "TRUE",
+            "IMAGE_GENERATED": "TRUE"
+          },
+          "matchingColumns": [
+            "LISTING_ID"
+          ],
+          "schema": [
+            {
+              "id": "TITLE",
+              "displayName": "TITLE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "DESCRIPTION",
+              "displayName": "DESCRIPTION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CLEAN_DESCRIPTION",
+              "displayName": "CLEAN_DESCRIPTION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PRICE",
+              "displayName": "PRICE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CURRENCY_CODE",
+              "displayName": "CURRENCY_CODE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "QUANTITY",
+              "displayName": "QUANTITY",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "TAGS",
+              "displayName": "TAGS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "MATERIALS",
+              "displayName": "MATERIALS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE1",
+              "displayName": "IMAGE1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE2",
+              "displayName": "IMAGE2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE3",
+              "displayName": "IMAGE3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE4",
+              "displayName": "IMAGE4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE5",
+              "displayName": "IMAGE5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE6",
+              "displayName": "IMAGE6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE7",
+              "displayName": "IMAGE7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE8",
+              "displayName": "IMAGE8",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE9",
+              "displayName": "IMAGE9",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE10",
+              "displayName": "IMAGE10",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 1 TYPE",
+              "displayName": "VARIATION 1 TYPE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 1 NAME",
+              "displayName": "VARIATION 1 NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 1 VALUES",
+              "displayName": "VARIATION 1 VALUES",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 2 TYPE",
+              "displayName": "VARIATION 2 TYPE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 2 NAME",
+              "displayName": "VARIATION 2 NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VARIATION 2 VALUES",
+              "displayName": "VARIATION 2 VALUES",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "SKU",
+              "displayName": "SKU",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "LISTING_ID",
+              "displayName": "LISTING_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ETSY_URL",
+              "displayName": "ETSY_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "SHOP_NAME",
+              "displayName": "SHOP_NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "MAIN_IMAGE",
+              "displayName": "MAIN_IMAGE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "BOARD",
+              "displayName": "BOARD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "STATUS",
+              "displayName": "STATUS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "IMAGE_PROMPT",
+              "displayName": "IMAGE_PROMPT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_IMAGE_URL",
+              "displayName": "PIN_IMAGE_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PIN_TITLE",
+              "displayName": "PIN_TITLE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PIN_DESCRIPTION",
+              "displayName": "PIN_DESCRIPTION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PIN_HASHTAGS",
+              "displayName": "PIN_HASHTAGS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_ALT_TEXT",
+              "displayName": "PIN_ALT_TEXT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PIN_POST_DATE",
+              "displayName": "PIN_POST_DATE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PIN_ATTEMPTS",
+              "displayName": "PIN_ATTEMPTS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "LAST_ERROR",
+              "displayName": "LAST_ERROR",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "CONTENT_GENERATED",
+              "displayName": "CONTENT_GENERATED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IMAGE_GENERATED",
+              "displayName": "IMAGE_GENERATED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "POSTED_TO_PINTEREST",
+              "displayName": "POSTED_TO_PINTEREST",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RSS_IMPORTED",
+              "displayName": "RSS_IMPORTED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CREATED_AT",
+              "displayName": "CREATED_AT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "UPDATED_AT",
+              "displayName": "UPDATED_AT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PIN_SOURCE_IMAGE",
+              "displayName": "PIN_SOURCE_IMAGE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "product_name",
+              "displayName": "product_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "pin_title",
+              "displayName": "pin_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "pin_description",
+              "displayName": "pin_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "focus_keyword",
+              "displayName": "focus_keyword",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "top_keywords",
+              "displayName": "top_keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "mockup_image_url",
+              "displayName": "mockup_image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_art_url",
+              "displayName": "source_art_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -352,
+        2160
+      ],
+      "id": "PLACEHOLDER_NODE_ID_26",
+      "name": "Save Posted Status",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PLACEHOLDER_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"LISTING_ID\": \"{{ $('Assemble Asset Payload').item.json.LISTING_ID }}\",\n  \"STATUS\": \"posted\",\n  \"PIN_IMAGE_URL\": \"{{ $('Assemble Asset Payload').item.json.mockup_image_url }}\",\n  \"PIN_TITLE\": \"{{ $('Assemble Asset Payload').item.json.pin_title }}\",\n  \"PIN_DESCRIPTION\": \"{{ $('Assemble Asset Payload').item.json.pin_description }}\",\n  \"PIN_POST_DATE\": \"{{ $now.toISO() }}\",\n  \"PIN_ATTEMPTS\": \"{{ Number($('Assemble Asset Payload').item.json.PIN_ATTEMPTS || 0) + 1 }}\",\n  \"LAST_ERROR\": \"\",\n  \"POSTED_TO_PINTEREST\": \"TRUE\",\n  \"UPDATED_AT\": \"{{ $now.toISO() }}\",\n  \"CONTENT_GENERATED\": \"TRUE\",\n  \"IMAGE_GENERATED\": \"TRUE\",\n  \"product_name\": \"{{ $('Assemble Asset Payload').item.json.product_name }}\",\n  \"pin_title\": \"{{ $('Assemble Asset Payload').item.json.pin_title }}\",\n  \"pin_description\": \"{{ $('Assemble Asset Payload').item.json.pin_description }}\",\n  \"focus_keyword\": \"{{ $('Assemble Asset Payload').item.json.focus_keyword }}\",\n  \"top_keywords\": \"{{ $('Assemble Asset Payload').item.json.top_keywords }}\",\n  \"mockup_image_url\": \"{{ $('Assemble Asset Payload').item.json.mockup_image_url }}\",\n  \"source_art_url\": \"{{ $('Assemble Asset Payload').item.json.source_art_url }}\",\n  \"status\": \"posted\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -528,
+        2160
+      ],
+      "id": "PLACEHOLDER_NODE_ID_27",
+      "name": "Assemble Posted Payload"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        1376
+      ],
+      "id": "PLACEHOLDER_NODE_ID_28",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "70d3bdd5-ee6e-4c14-a28f-cb82eb4f1e30",
+              "leftValue": "={{$json[\"should_process\"]}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -40,
+        1376
+      ],
+      "id": "PLACEHOLDER_NODE_ID_29",
+      "name": "Check Row Eligible"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 3
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1008,
+        1248
+      ],
+      "id": "PLACEHOLDER_NODE_ID_30",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Import RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "Normalize RSS Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize RSS Items": {
+      "main": [
+        [
+          {
+            "node": "Upsert Product Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Rows": {
+      "main": [
+        [
+          {
+            "node": "Select First Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select First Row": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Row Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Row Status": {
+      "main": [
+        [
+          {
+            "node": "Check Row Eligible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Image Prompt Needed": {
+      "main": [
+        [
+          {
+            "node": "Generate Image Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Source Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Pin Image To File": {
+      "main": [
+        [
+          {
+            "node": "Upload Pin Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Pin Image": {
+      "main": [
+        [
+          {
+            "node": "Convert Pin Image To File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Source Image": {
+      "main": [
+        [
+          {
+            "node": "Generate Pin Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Pin Image": {
+      "main": [
+        [
+          {
+            "node": "Generate Focus Keyword",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Focus Keyword Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Focus Keyword",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Focus Keyword": {
+      "main": [
+        [
+          {
+            "node": "Fetch Keyword Suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Prompt Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Image Prompt",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Image Prompt": {
+      "main": [
+        [
+          {
+            "node": "Save Prompt Ready Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Keyword Suggestions": {
+      "main": [
+        [
+          {
+            "node": "Extract Top Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pin Title Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Pin Title",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Prompt Ready Status": {
+      "main": [
+        [
+          {
+            "node": "Download Source Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Pin Title": {
+      "main": [
+        [
+          {
+            "node": "Generate Pin Description",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pin Description Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Pin Description",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Top Keywords": {
+      "main": [
+        [
+          {
+            "node": "Generate Pin Title",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Pin Description": {
+      "main": [
+        [
+          {
+            "node": "Assemble Asset Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Asset Payload": {
+      "main": [
+        [
+          {
+            "node": "Save Assets Ready Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Assets Ready Status": {
+      "main": [
+        [
+          {
+            "node": "Post Pin To Make",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Pin To Make": {
+      "main": [
+        [
+          {
+            "node": "Assemble Posted Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Posted Payload": {
+      "main": [
+        [
+          {
+            "node": "Save Posted Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Row Eligible": {
+      "main": [
+        [
+          {
+            "node": "Check Image Prompt Needed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "PLACEHOLDER_VERSION_ID",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "PLACEHOLDER_N8N_INSTANCE_ID"
+  },
+  "id": "PLACEHOLDER_WORKFLOW_ID",
+  "tags": []
+}
